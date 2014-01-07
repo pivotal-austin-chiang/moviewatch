@@ -1,6 +1,8 @@
 package com.example.moviewatch;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
@@ -17,6 +19,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -33,8 +36,11 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.net.URL;
 import java.util.zip.GZIPInputStream;
 import java.io.IOException;
+
+import javax.xml.datatype.Duration;
 
 public class MovieDetails extends ActionBarActivity {
 
@@ -49,6 +55,14 @@ public class MovieDetails extends ActionBarActivity {
     private TextView title;
     private TextView mpaa;
     private TextView runtime;
+    private TextView c_rating;
+    private TextView a_rating;
+    private TextView consensus;
+    private TextView sypnosis;
+    private TextView movie_cast;
+    private ImageView poster;
+
+    String castList = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -58,12 +72,17 @@ public class MovieDetails extends ActionBarActivity {
         title = (TextView) findViewById(R.id.title);
         mpaa = (TextView) findViewById(R.id.mpaa);
         runtime = (TextView) findViewById(R.id.runtime);
+        c_rating = (TextView) findViewById(R.id.c_rating);
+        a_rating = (TextView) findViewById(R.id.a_rating);
+        consensus = (TextView) findViewById(R.id.consensus);
+        sypnosis = (TextView) findViewById(R.id.sypnosis);
+        movie_cast = (TextView) findViewById(R.id.cast);
+        poster = (ImageView) findViewById(R.id.thumbnail);
 
         Bundle extras = getIntent().getExtras();
         String id = extras.getString("MOVIE_ID");
 
         requestTask.execute("http://api.rottentomatoes.com/api/public/v1.0/movies/" + id + ".json?apikey=vxwjzfe4gaczt2qpurr33cyj");
-
 
 
     }
@@ -131,10 +150,23 @@ public class MovieDetails extends ActionBarActivity {
                     // because JSON is the response format Rotten Tomatoes uses
                     movieObject = new JSONObject(response);
                     title.setText(requestTask.movieObject.getString("title"));
-                    mpaa.setText(requestTask.movieObject.getString("mpaa_rating"));
-                    runtime.setText(requestTask.movieObject.getString("runtime"));
-//                    Toast.makeText(getApplicationContext(), movieObject.getString("title"),Toast.LENGTH_SHORT).show();
+                    mpaa.setText("Rated: " + requestTask.movieObject.getString("mpaa_rating"));
+                    runtime.setText("Duration: " +  requestTask.movieObject.getString("runtime"));
+                    c_rating.setText("Critics: " + requestTask.movieObject.getJSONObject("ratings").getString("critics_score") + "%");
+                    a_rating.setText("Audience: " + requestTask.movieObject.getJSONObject("ratings").getString("audience_score")+"%");
+                    consensus.setText("Critic's Consensus: " + requestTask.movieObject.getString("critics_consensus"));
+                    sypnosis.setText("Synopsis: " + requestTask.movieObject.getString("synopsis"));
+                    JSONArray cast = requestTask.movieObject.getJSONArray("abridged_cast");
+                    if(cast != null){
+                        castList += cast.getJSONObject(0).getString("name");
+                        for(int i=1;i<cast.length();i++){
+                            castList+=", ";
+                            castList+=cast.getJSONObject(i).getString("name");
+                        }
+                    }
+                    movie_cast.setText("Cast: " + castList);
 
+                    new LoadImageTask().execute(movieObject.getJSONObject("posters").getString("detailed"), poster);
 
                 }
                 catch (JSONException e)
@@ -157,6 +189,40 @@ public class MovieDetails extends ActionBarActivity {
             gis.close();
             is.close();
             return string.toString();
+        }
+
+    }
+
+    public static Bitmap loadBitmap(String url) {
+        try{
+            URL newurl = new URL(url);
+            Bitmap mIcon_val = BitmapFactory.decodeStream(newurl.openConnection().getInputStream());
+            return mIcon_val;
+        }
+        catch(Exception e) {
+            Log.d("Bitmap", "Bitmap failed to load");
+            return null;
+
+        }
+    }
+
+    class LoadImageTask extends AsyncTask<Object, String, String> {
+
+        private ImageView thumbnailTemp;
+        private Bitmap thumbnailBitmap;
+
+        @Override
+        protected String doInBackground(Object... uri)
+        {
+            thumbnailTemp = (ImageView) uri[1];
+            thumbnailBitmap = loadBitmap((String) uri[0]);
+            return "";
+        }
+        @Override
+        protected void onPostExecute(String response) {
+            if (thumbnailBitmap != null) {
+                thumbnailTemp.setImageBitmap(thumbnailBitmap);
+            }
         }
 
     }

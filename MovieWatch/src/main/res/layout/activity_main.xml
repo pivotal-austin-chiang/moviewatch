@@ -5,7 +5,7 @@
     android:orientation="vertical" >
 
 
-    <ListView
+    <com.example.moviewatch.EnhancedListView
         android:id="@+id/list_movies"
         android:layout_width="match_parent"
         android:layout_height="0dip"
