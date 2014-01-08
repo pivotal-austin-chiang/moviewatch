@@ -41,10 +41,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class CustomAdapter extends ArrayAdapter{
-    private ArrayList<JSONObject> entries;
+public class WatchlistAdapter extends ArrayAdapter{
+    private List<Movie> entries;
     private Activity activity;
-    private CustomAdapter currentAdapter;
+    private WatchlistAdapter currentAdapter;
 
     private LayoutInflater inflater;
 
@@ -54,7 +54,7 @@ public class CustomAdapter extends ArrayAdapter{
 
     private MovieDataSource dataSource;
 
-    public CustomAdapter(Activity a, int textViewResourceId, ArrayList<JSONObject> entries, MovieDataSource dataSource) {
+    public WatchlistAdapter(Activity a, int textViewResourceId, List<Movie> entries, MovieDataSource dataSource) {
         super(a, textViewResourceId, entries);
         layout = textViewResourceId;
         this.entries = entries;
@@ -71,8 +71,7 @@ public class CustomAdapter extends ArrayAdapter{
         TextView score;
         ImageView thumbnail;
         Button watch;
-        Movie movie;
-        JSONObject entry = this.entries.get(position);
+        Movie movie = this.entries.get(position);
         View v = null;
         if (convertView != null) {
             v = convertView;
@@ -83,53 +82,13 @@ public class CustomAdapter extends ArrayAdapter{
         title = (TextView) v.findViewById(R.id.title);
         score = (TextView) v.findViewById(R.id.score);
         thumbnail = (ImageView) v.findViewById(R.id.thumbnail);
-        watch = (Button) v.findViewById(R.id.watch);
-
-
-        try {
-            movie = new Movie();
-            movie.setMovieId(Integer.parseInt(entry.getString("id")));
-            movie.setMovieTitle(entry.getString("title"));
-            movie.setMovieCritics(Integer.parseInt(entry.getJSONObject("ratings").getString("critics_score")));
-            movie.setMovieAudience(Integer.parseInt(entry.getJSONObject("ratings").getString("audience_score")));
-            movie.setMpaa(entry.getString("mpaa_rating"));
-            movie.setImageUrl(entry.getJSONObject("posters").getString("thumbnail"));
-
-            movieModelList.add(movie);
 
 
 
 
-            title.setText(movie.getMovieTitle());
-            score.setText("Critics: " + movie.getMovieCritics() + "% | " + "Audience: " + movie.getMovieAudience() + "% | " + "Rated: " + movie.getMpaa());
-            new LoadImageTask().execute(movie.getImageUrl(), thumbnail);
-
-        } catch (JSONException e) {
-            Log.d("Test", "Failed to parse the JSON response!");
-        }
-
-        final int tempPosition = position;
-
-        watch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dataSource.createMovie(movieModelList.get(tempPosition));
-            }
-        });
-
-//        Object content = null;
-//        try{
-//            URL url = new URL(this.entries.get(position).getJSONObject("posters").getString("thumbnail"));
-//            content = url.getContent();
-//        }
-//        catch(Exception ex)
-//        {
-//            Log.d("IMAGE FETCH", "EXCEPTION FETCHING IMAGE ");
-//            ex.printStackTrace();
-//        }
-//        InputStream is = (InputStream)content;
-//        Drawable image = Drawable.createFromStream(is, "src");
-//        thumbnail.setImageDrawable(image);
+        title.setText(movie.getMovieTitle());
+        score.setText("Critics: " + movie.getMovieCritics() + "% | " + "Audience: " + movie.getMovieAudience() + "% | " + "Rated: " + movie.getMpaa());
+        new LoadImageTask().execute(movie.getImageUrl(), thumbnail);
 
         return v;
     }

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
@@ -27,6 +28,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.ArrayList;
 
@@ -46,6 +48,7 @@ public class MainActivity extends Activity
     private Button searchButton;
     private EnhancedListView moviesList;
     private ArrayList<JSONObject> movieTitles;
+    private MovieDataSource dataSource;
 
     private CustomAdapter adapter = null;
 
@@ -54,6 +57,14 @@ public class MainActivity extends Activity
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        try {
+            dataSource = new MovieDataSource(this);
+            dataSource.open();
+        } catch (SQLException e) {
+            Log.d("OPENING DATABASE EXCEPTION", "");
+            e.printStackTrace();
+        }
 
         moviesList = (EnhancedListView) findViewById(R.id.list_movies);
         moviesList.setClickable(true);
@@ -69,6 +80,19 @@ public class MainActivity extends Activity
         SearchView searchView = (SearchView) menu.findItem(R.id.search).getActionView();
         searchView.setOnQueryTextListener(new submitListener());
         return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle presses on the action bar items
+        switch (item.getItemId()) {
+            case R.id.action_watch:
+                Intent intent = new Intent(getApplicationContext(), WatchList.class);
+                startActivity(intent);
+                return false;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     private class submitListener implements SearchView.OnQueryTextListener, SearchView.OnCloseListener
@@ -94,11 +118,12 @@ public class MainActivity extends Activity
 
     private void refreshMoviesList()
     {
-        adapter = new CustomAdapter(this, R.layout.listview_layout, movieTitles);
+        adapter = new CustomAdapter(this, R.layout.listview_layout, movieTitles, dataSource);
         moviesList.setAdapter(adapter);
         moviesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
+                Log.d("CELLPRESS", "MOVIE IS PRESSED");
                 String movie_id = "";
                 try {
                     movie_id = movieTitles.get(position).getString("id");

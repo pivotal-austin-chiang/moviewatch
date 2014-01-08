@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="6dip">
+    android:padding="6dip" >
     <ImageView
         android:id="@+id/thumbnail"
         android:layout_alignParentLeft="true"
@@ -32,14 +32,4 @@
         android:textSize="11sp"
         android:text="Loading" >
     </TextView>
-    <Button
-        android:id="@+id/watch"
-        android:layout_height="wrap_content"
-        android:layout_width="wrap_content"
-        android:src ="@android:drawable/ic_lock_idle_alarm"
-        android:layout_alignParentRight="true"
-        android:text="Add"
-        android:focusable="false"
-
-        />
 </RelativeLayout>

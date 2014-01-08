@@ -28,6 +28,10 @@
             android:name="com.example.moviewatch.MovieDetails"
             android:label="@string/title_activity_movie_details" >
         </activity>
+        <activity
+            android:name="com.example.moviewatch.WatchList"
+            android:label="@string/title_activity_watch_list" >
+        </activity>
     </application>
 
 </manifest>
