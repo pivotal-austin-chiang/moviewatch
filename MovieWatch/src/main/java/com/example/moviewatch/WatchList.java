@@ -25,7 +25,7 @@ import java.util.List;
 public class WatchList extends ActionBarActivity {
 
     private MovieDataSource dataSource;
-    private List movieList;
+    private List<Movie> moviesList;
     private EnhancedListView moviesListView;
     WatchlistAdapter adapter;
     @Override
@@ -46,13 +46,24 @@ public class WatchList extends ActionBarActivity {
 
 
         Log.d("DATABASE TABLE SIZE", dataSource.getAllMovies().size() + "");
-        movieList = dataSource.getAllMovies();
+        moviesList = dataSource.getAllMovies();
 
-        adapter = new WatchlistAdapter(this, R.layout.watchlist_layout, movieList, dataSource);
+        adapter = new WatchlistAdapter(this, R.layout.watchlist_layout, moviesList, dataSource);
         moviesListView.setAdapter(adapter);
         moviesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
+                Log.d("CELLPRESS", "MOVIE IS PRESSED");
+                try {
+                    Intent intent = new Intent(getApplicationContext(), MovieDetails.class);
+                    Log.d ("TEST ID", moviesList.get(position).getMovieId() + "");
+                    intent.putExtra("MOVIE_ID", Integer.toString(moviesList.get(position).getMovieId()));
+                    startActivity(intent);
+                } catch (Exception e){
+                    Log.d("Error", "Incorrect JSON format");
+                }
+
+//                Toast.makeText(getApplicationContext(), synopsis,Toast.LENGTH_SHORT).show();
             }
         });
         moviesListView.setDismissCallback(new EnhancedListView.OnDismissCallback() {
@@ -60,8 +71,8 @@ public class WatchList extends ActionBarActivity {
             public EnhancedListView.Undoable onDismiss(EnhancedListView listView, final int position) {
 
 
-                dataSource.deleteMovie((Movie) movieList.get(position));
-                movieList.remove(position);
+                dataSource.deleteMovie((Movie) moviesList.get(position));
+                moviesList.remove(position);
 
                 adapter.notifyDataSetChanged();
 
