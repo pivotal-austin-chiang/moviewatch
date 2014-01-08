@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -51,17 +52,23 @@ public class MovieDataSource {
         long insertId = database.insert(MySQLiteHelper.TABLE_WATCHLIST, null,
                 values);
 
-        Cursor cursor = database.query(MySQLiteHelper.TABLE_WATCHLIST,
-                allColumns, MySQLiteHelper.COLUMN_ID + " = " + insertId, null,
-                null, null, null);
+        if (insertId != -1) {
+            Cursor cursor = database.query(MySQLiteHelper.TABLE_WATCHLIST,
+                    allColumns, MySQLiteHelper.COLUMN_ID + " = " + insertId, null,
+                    null, null, null);
 
-        cursor.moveToFirst();
-        Movie newMovie = cursorToMovie(cursor);
-        cursor.close();
-        return newMovie;
+            cursor.moveToFirst();
+            Movie newMovie = cursorToMovie(cursor);
+            cursor.close();
+            return newMovie;
+        } else {
+            return null;
+        }
+
+
     }
 
-    public void deleteComment(Movie movie) {
+    public void deleteMovie(Movie movie) {
         long movieId = movie.getMovieId();
         database.delete(MySQLiteHelper.TABLE_WATCHLIST, MySQLiteHelper.COLUMN_MOVIE_ID
                 + " = " + movieId, null);
@@ -84,6 +91,19 @@ public class MovieDataSource {
         return movies;
     }
 
+    public boolean verification(int id) throws SQLException {
+        int count = -1;
+        Cursor c = null;
+        String query = "SELECT COUNT(*) FROM "
+                + MySQLiteHelper.TABLE_WATCHLIST + " WHERE movieid = " + id;
+        c = database.rawQuery(query, null);
+        if (c.moveToFirst()) {
+            count = c.getInt(0);
+        }
+        c.close();
+        return count > 0;
+    }
+
     public void logColumnNames () {
         Cursor ti = database.rawQuery("PRAGMA table_info("+MySQLiteHelper.TABLE_WATCHLIST+")", null);
         if ( ti.moveToFirst() ) {
@@ -91,6 +111,8 @@ public class MovieDataSource {
                 Log.d("DATABASE TABLE NAME", "col: " + ti.getString(1));
             } while (ti.moveToNext());
         }
+
+        ti.close();
     }
 
     private Movie cursorToMovie(Cursor cursor) {

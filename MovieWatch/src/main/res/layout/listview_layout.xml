@@ -20,7 +20,9 @@
         android:textSize="17sp"
         android:textColor="#000000"
         android:textStyle="bold"
-        android:text="Loading" >
+        android:text="Loading"
+        android:layout_toLeftOf="@+id/watch"
+        android:singleLine="true">
     </TextView>
     <TextView
         android:id="@+id/score"
@@ -30,13 +32,15 @@
         android:layout_height="wrap_content"
         android:gravity="left"
         android:textSize="11sp"
-        android:text="Loading" >
+        android:text="Loading"
+        android:layout_toLeftOf="@+id/watch"
+        android:singleLine="true">
     </TextView>
-    <Button
+    <ImageView
         android:id="@+id/watch"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:src ="@android:drawable/ic_lock_idle_alarm"
+        android:src ="@drawable/ic_action_good"
         android:layout_alignParentRight="true"
         android:text="Add"
         android:focusable="false"

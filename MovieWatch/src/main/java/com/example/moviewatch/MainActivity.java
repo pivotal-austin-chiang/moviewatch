@@ -11,6 +11,7 @@ import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Toast;
@@ -46,11 +47,12 @@ public class MainActivity extends Activity
 
     private EditText searchBox;
     private Button searchButton;
-    private EnhancedListView moviesList;
-    private ArrayList<JSONObject> movieTitles;
+    private EnhancedListView moviesListView;
+    private ArrayList<Movie> moviesList;
     private MovieDataSource dataSource;
 
     private CustomAdapter adapter = null;
+    private ImageView thumb = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -66,11 +68,20 @@ public class MainActivity extends Activity
             e.printStackTrace();
         }
 
-        moviesList = (EnhancedListView) findViewById(R.id.list_movies);
-        moviesList.setClickable(true);
+        moviesListView = (EnhancedListView) findViewById(R.id.list_movies);
+        moviesListView.setClickable(true);
 
         new RequestTask().execute("http://api.rottentomatoes.com/api/public/v1.0/lists/movies/in_theaters.json?page_limit=15&page=1&country=us&apikey=vxwjzfe4gaczt2qpurr33cyj");
 
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (adapter != null) {
+            Log.d("Resume","Main activity resumed");
+            adapter.notifyDataSetChanged();
+        }
     }
 
     @Override
@@ -89,7 +100,7 @@ public class MainActivity extends Activity
             case R.id.action_watch:
                 Intent intent = new Intent(getApplicationContext(), WatchList.class);
                 startActivity(intent);
-                return false;
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -99,6 +110,8 @@ public class MainActivity extends Activity
     {
         @Override
         public boolean onQueryTextSubmit(String query) {
+            query = query.replace(' ', '+');
+            Log.d("FORMATTED QUERY", query);
             new RequestTask().execute("http://api.rottentomatoes.com/api/public/v1.0/movies.json?q="+query+"&page_limit=10&page=1&apikey=vxwjzfe4gaczt2qpurr33cyj");
             return true;
         }
@@ -118,17 +131,16 @@ public class MainActivity extends Activity
 
     private void refreshMoviesList()
     {
-        adapter = new CustomAdapter(this, R.layout.listview_layout, movieTitles, dataSource);
-        moviesList.setAdapter(adapter);
-        moviesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        adapter = new CustomAdapter(this, R.layout.listview_layout, moviesList, dataSource);
+        moviesListView.setAdapter(adapter);
+        moviesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
                 Log.d("CELLPRESS", "MOVIE IS PRESSED");
-                String movie_id = "";
                 try {
-                    movie_id = movieTitles.get(position).getString("id");
                     Intent intent = new Intent(getApplicationContext(), MovieDetails.class);
-                    intent.putExtra("MOVIE_ID", movie_id);
+                    Log.d ("TEST ID", moviesList.get(position).getMovieId() + "");
+                    intent.putExtra("MOVIE_ID", Integer.toString(moviesList.get(position).getMovieId()));
                     startActivity(intent);
                 } catch (Exception e){
                     Log.d("Error", "Incorrect JSON format");
@@ -137,22 +149,18 @@ public class MainActivity extends Activity
 //                Toast.makeText(getApplicationContext(), synopsis,Toast.LENGTH_SHORT).show();
             }
         });
-        moviesList.setDismissCallback(new EnhancedListView.OnDismissCallback() {
+        moviesListView.setDismissCallback(new EnhancedListView.OnDismissCallback() {
             @Override
             public EnhancedListView.Undoable onDismiss(EnhancedListView listView, final int position) {
 
-                movieTitles.remove(position);
+                moviesList.remove(position);
                 adapter.notifyDataSetChanged();
 
-                return new EnhancedListView.Undoable() {
-                    @Override
-                    public void undo() {
-                    }
-                };
+                return null;
             }
         });
 
-        moviesList.enableSwipeToDismiss();
+        moviesListView.enableSwipeToDismiss();
 
     }
 
@@ -222,13 +230,20 @@ public class MainActivity extends Activity
                     JSONArray movies = jsonResponse.getJSONArray("movies");
 
                     // add each movie's title to an array
-                    movieTitles = new ArrayList();
+                    moviesList = new ArrayList();
+                    Movie movieObject;
                     for (int i = 0; i < movies.length(); i++)
                     {
                         JSONObject movie = movies.getJSONObject(i);
-                        movieTitles.add (movie);
+                        movieObject = new Movie();
+                        movieObject.setMovieId(Integer.parseInt(movie.getString("id")));
+                        movieObject.setMovieTitle(movie.getString("title"));
+                        movieObject.setMovieCritics(Integer.parseInt(movie.getJSONObject("ratings").getString("critics_score")));
+                        movieObject.setMovieAudience(Integer.parseInt(movie.getJSONObject("ratings").getString("audience_score")));
+                        movieObject.setMpaa(movie.getString("mpaa_rating"));
+                        movieObject.setImageUrl(movie.getJSONObject("posters").getString("thumbnail"));
+                        moviesList.add(movieObject);
                     }
-
 
                     // update the UI
                     refreshMoviesList();

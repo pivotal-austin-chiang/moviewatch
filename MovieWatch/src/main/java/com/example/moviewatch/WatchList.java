@@ -59,14 +59,13 @@ public class WatchList extends ActionBarActivity {
             @Override
             public EnhancedListView.Undoable onDismiss(EnhancedListView listView, final int position) {
 
+
+                dataSource.deleteMovie((Movie) movieList.get(position));
                 movieList.remove(position);
+
                 adapter.notifyDataSetChanged();
 
-                return new EnhancedListView.Undoable() {
-                    @Override
-                    public void undo() {
-                    }
-                };
+                return null;
             }
         });
 
@@ -77,7 +76,7 @@ public class WatchList extends ActionBarActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        
+
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.watch_list, menu);
         return true;

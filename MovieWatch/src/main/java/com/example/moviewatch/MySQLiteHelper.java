@@ -24,7 +24,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
     public static final String DATABASE_CREATE = "create table "
             + TABLE_WATCHLIST + "("
             + COLUMN_ID + " integer primary key autoincrement, "
-            + COLUMN_MOVIE_ID + " text not null, "
+            + COLUMN_MOVIE_ID + " text not null unique, "
             + COLUMN_MOVIE_TITLE + " text not null, "
             + COLUMN_CRITICS + " integer not null, "
             + COLUMN_AUDIENCE + " integer not null, "

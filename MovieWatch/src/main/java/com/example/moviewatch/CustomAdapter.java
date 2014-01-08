@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,7 +43,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class CustomAdapter extends ArrayAdapter{
-    private ArrayList<JSONObject> entries;
+    private ArrayList<Movie> entries;
     private Activity activity;
     private CustomAdapter currentAdapter;
 
@@ -50,11 +51,12 @@ public class CustomAdapter extends ArrayAdapter{
 
     private int layout;
 
-    private List<Movie> movieModelList = new ArrayList<Movie>();
-
     private MovieDataSource dataSource;
-
-    public CustomAdapter(Activity a, int textViewResourceId, ArrayList<JSONObject> entries, MovieDataSource dataSource) {
+    private String thumb_grey= "@drawable/ic_action_good";
+    private String thumb_blue= "@drawable/ic_action_good_blue";
+    private int grey;
+    private int blue;
+    public CustomAdapter(Activity a, int textViewResourceId, ArrayList<Movie> entries, MovieDataSource dataSource) {
         super(a, textViewResourceId, entries);
         layout = textViewResourceId;
         this.entries = entries;
@@ -62,6 +64,8 @@ public class CustomAdapter extends ArrayAdapter{
         currentAdapter = this;
         inflater = LayoutInflater.from(a);
         this.dataSource = dataSource;
+        grey = a.getResources().getIdentifier(thumb_grey, null, a.getPackageName());
+        blue = a.getResources().getIdentifier(thumb_blue, null, a.getPackageName());
     }
 
 
@@ -70,9 +74,8 @@ public class CustomAdapter extends ArrayAdapter{
         TextView title;
         TextView score;
         ImageView thumbnail;
-        Button watch;
-        Movie movie;
-        JSONObject entry = this.entries.get(position);
+        ImageView watch;
+        Movie movie = entries.get(position);
         View v = null;
         if (convertView != null) {
             v = convertView;
@@ -83,29 +86,26 @@ public class CustomAdapter extends ArrayAdapter{
         title = (TextView) v.findViewById(R.id.title);
         score = (TextView) v.findViewById(R.id.score);
         thumbnail = (ImageView) v.findViewById(R.id.thumbnail);
-        watch = (Button) v.findViewById(R.id.watch);
+        watch = (ImageView) v.findViewById(R.id.watch);
 
 
         try {
-            movie = new Movie();
-            movie.setMovieId(Integer.parseInt(entry.getString("id")));
-            movie.setMovieTitle(entry.getString("title"));
-            movie.setMovieCritics(Integer.parseInt(entry.getJSONObject("ratings").getString("critics_score")));
-            movie.setMovieAudience(Integer.parseInt(entry.getJSONObject("ratings").getString("audience_score")));
-            movie.setMpaa(entry.getString("mpaa_rating"));
-            movie.setImageUrl(entry.getJSONObject("posters").getString("thumbnail"));
 
-            movieModelList.add(movie);
-
-
-
+            if (dataSource.verification(movie.getMovieId())) {
+                watch.setImageResource(blue);
+                watch.setEnabled(false);
+            }
+            else {
+                watch.setImageResource(grey);
+                watch.setEnabled(true);
+            }
 
             title.setText(movie.getMovieTitle());
             score.setText("Critics: " + movie.getMovieCritics() + "% | " + "Audience: " + movie.getMovieAudience() + "% | " + "Rated: " + movie.getMpaa());
             new LoadImageTask().execute(movie.getImageUrl(), thumbnail);
 
-        } catch (JSONException e) {
-            Log.d("Test", "Failed to parse the JSON response!");
+        } catch (SQLException e) {
+            Log.d("SQL Error", "Checking if movie is in database failed");
         }
 
         final int tempPosition = position;
@@ -113,7 +113,12 @@ public class CustomAdapter extends ArrayAdapter{
         watch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                dataSource.createMovie(movieModelList.get(tempPosition));
+                Movie returnValue = dataSource.createMovie(entries.get(tempPosition));
+                if (returnValue != null) {
+                    view.setEnabled(false);
+                    ImageView v = (ImageView) view;
+                    v.setImageResource(blue);
+                }
             }
         });
 
