@@ -30,6 +30,9 @@ import android.widget.TextView;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.NetworkImageView;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -54,9 +57,10 @@ public class CustomAdapter extends ArrayAdapter{
     private MovieDataSource dataSource;
     private String thumb_grey= "@drawable/ic_action_good";
     private String thumb_blue= "@drawable/ic_action_good_blue";
+    private ImageLoader mImageLoader;
     private int grey;
     private int blue;
-    public CustomAdapter(Activity a, int textViewResourceId, ArrayList<Movie> entries, MovieDataSource dataSource) {
+    public CustomAdapter(Activity a, int textViewResourceId, ArrayList<Movie> entries, MovieDataSource dataSource, ImageLoader mImageLoader) {
         super(a, textViewResourceId, entries);
         layout = textViewResourceId;
         this.entries = entries;
@@ -64,6 +68,7 @@ public class CustomAdapter extends ArrayAdapter{
         currentAdapter = this;
         inflater = LayoutInflater.from(a);
         this.dataSource = dataSource;
+        this.mImageLoader = mImageLoader;
         grey = a.getResources().getIdentifier(thumb_grey, null, a.getPackageName());
         blue = a.getResources().getIdentifier(thumb_blue, null, a.getPackageName());
     }
@@ -73,7 +78,7 @@ public class CustomAdapter extends ArrayAdapter{
     public View getView(int position, View convertView, ViewGroup parent) {
         TextView title;
         TextView score;
-        ImageView thumbnail;
+        NetworkImageView thumbnail;
         ImageView watch;
         Movie movie = entries.get(position);
         View v = null;
@@ -85,7 +90,7 @@ public class CustomAdapter extends ArrayAdapter{
 
         title = (TextView) v.findViewById(R.id.title);
         score = (TextView) v.findViewById(R.id.score);
-        thumbnail = (ImageView) v.findViewById(R.id.thumbnail);
+        thumbnail = (NetworkImageView) v.findViewById(R.id.thumbnail);
         watch = (ImageView) v.findViewById(R.id.watch);
 
 
@@ -102,7 +107,7 @@ public class CustomAdapter extends ArrayAdapter{
 
             title.setText(movie.getMovieTitle());
             score.setText("Critics: " + movie.getMovieCritics() + "% | " + "Audience: " + movie.getMovieAudience() + "% | " + "Rated: " + movie.getMpaa());
-            new LoadImageTask().execute(movie.getImageUrl(), thumbnail);
+            thumbnail.setImageUrl(movie.getImageUrl(), mImageLoader);
 
         } catch (SQLException e) {
             Log.d("SQL Error", "Checking if movie is in database failed");
@@ -121,20 +126,6 @@ public class CustomAdapter extends ArrayAdapter{
                 }
             }
         });
-
-//        Object content = null;
-//        try{
-//            URL url = new URL(this.entries.get(position).getJSONObject("posters").getString("thumbnail"));
-//            content = url.getContent();
-//        }
-//        catch(Exception ex)
-//        {
-//            Log.d("IMAGE FETCH", "EXCEPTION FETCHING IMAGE ");
-//            ex.printStackTrace();
-//        }
-//        InputStream is = (InputStream)content;
-//        Drawable image = Drawable.createFromStream(is, "src");
-//        thumbnail.setImageDrawable(image);
 
         return v;
     }

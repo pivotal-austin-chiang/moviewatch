@@ -29,6 +29,9 @@ import android.widget.TextView;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.NetworkImageView;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -53,8 +56,9 @@ public class WatchlistAdapter extends ArrayAdapter{
     private List<Movie> movieModelList = new ArrayList<Movie>();
 
     private MovieDataSource dataSource;
+    private ImageLoader mImageLoader;
 
-    public WatchlistAdapter(Activity a, int textViewResourceId, List<Movie> entries, MovieDataSource dataSource) {
+    public WatchlistAdapter(Activity a, int textViewResourceId, List<Movie> entries, MovieDataSource dataSource, ImageLoader mImageLoader) {
         super(a, textViewResourceId, entries);
         layout = textViewResourceId;
         this.entries = entries;
@@ -62,6 +66,7 @@ public class WatchlistAdapter extends ArrayAdapter{
         currentAdapter = this;
         inflater = LayoutInflater.from(a);
         this.dataSource = dataSource;
+        this.mImageLoader = mImageLoader;
     }
 
 
@@ -69,7 +74,7 @@ public class WatchlistAdapter extends ArrayAdapter{
     public View getView(int position, View convertView, ViewGroup parent) {
         TextView title;
         TextView score;
-        ImageView thumbnail;
+        NetworkImageView thumbnail;
         Button watch;
         Movie movie = this.entries.get(position);
         View v = null;
@@ -81,14 +86,14 @@ public class WatchlistAdapter extends ArrayAdapter{
 
         title = (TextView) v.findViewById(R.id.title);
         score = (TextView) v.findViewById(R.id.score);
-        thumbnail = (ImageView) v.findViewById(R.id.thumbnail);
+        thumbnail = (NetworkImageView) v.findViewById(R.id.thumbnail);
 
 
 
 
         title.setText(movie.getMovieTitle());
         score.setText("Critics: " + movie.getMovieCritics() + "% | " + "Audience: " + movie.getMovieAudience() + "% | " + "Rated: " + movie.getMpaa());
-        new LoadImageTask().execute(movie.getImageUrl(), thumbnail);
+        thumbnail.setImageUrl(movie.getImageUrl(), mImageLoader);
 
         return v;
     }

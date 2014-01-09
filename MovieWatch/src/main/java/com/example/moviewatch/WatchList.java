@@ -1,11 +1,13 @@
 package com.example.moviewatch;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -14,6 +16,10 @@ import android.view.ViewGroup;
 import android.os.Build;
 import android.widget.AdapterView;
 import android.widget.Toast;
+
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.Volley;
 
 import org.json.JSONObject;
 
@@ -28,6 +34,8 @@ public class WatchList extends ActionBarActivity {
     private List<Movie> moviesList;
     private EnhancedListView moviesListView;
     WatchlistAdapter adapter;
+    private RequestQueue mRequestQueue;
+    private ImageLoader mImageLoader;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,11 +52,22 @@ public class WatchList extends ActionBarActivity {
 
         moviesListView = (EnhancedListView) findViewById(R.id.list_movies);
 
+        mRequestQueue = Volley.newRequestQueue(this);
+        mImageLoader = new ImageLoader(mRequestQueue, new ImageLoader.ImageCache() {
+            private final LruCache<String, Bitmap> mCache = new LruCache<String, Bitmap>(10);
+            public void putBitmap(String url, Bitmap bitmap) {
+                mCache.put(url, bitmap);
+            }
+            public Bitmap getBitmap(String url) {
+                return mCache.get(url);
+            }
+        });
+
 
         Log.d("DATABASE TABLE SIZE", dataSource.getAllMovies().size() + "");
         moviesList = dataSource.getAllMovies();
 
-        adapter = new WatchlistAdapter(this, R.layout.watchlist_layout, moviesList, dataSource);
+        adapter = new WatchlistAdapter(this, R.layout.watchlist_layout, moviesList, dataSource, mImageLoader);
         moviesListView.setAdapter(adapter);
         moviesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,

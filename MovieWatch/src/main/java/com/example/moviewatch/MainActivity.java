@@ -1,13 +1,19 @@
 package com.example.moviewatch;
 import android.app.Activity;
+import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Looper;
 import android.util.Log;
+import android.util.LruCache;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -37,6 +43,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.zip.GZIPInputStream;
 
+import com.android.volley.*;
+import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.Volley;
+
 public class MainActivity extends Activity
 {
     // the Rotten Tomatoes API key of your application! get this from their website
@@ -48,11 +58,26 @@ public class MainActivity extends Activity
     private EditText searchBox;
     private Button searchButton;
     private EnhancedListView moviesListView;
-    private ArrayList<Movie> moviesList;
+    private ArrayList<Movie> moviesList = new ArrayList();
+    private ArrayList<Movie> tempList;
     private MovieDataSource dataSource;
 
     private CustomAdapter adapter = null;
     private ImageView thumb = null;
+    private boolean loadingMore = false;
+    private int itemsPerPage = 15;
+    private int PAGE_CAP;
+    private int currentPage = 1;
+    private String currentQuery = "";
+    private View footerView;
+    private Mode currentMode = Mode.IN_THEATRES;
+    private RequestQueue mRequestQueue;
+    private ImageLoader mImageLoader;
+
+    enum Mode {
+        SEARCH,
+        IN_THEATRES
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -69,11 +94,101 @@ public class MainActivity extends Activity
         }
 
         moviesListView = (EnhancedListView) findViewById(R.id.list_movies);
+        //add the footer before adding the adapter, else the footer will not load!
+        footerView = ((LayoutInflater)this.getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.footer_main, null, false);
+        moviesListView.addFooterView(footerView);
         moviesListView.setClickable(true);
+
+
+        //Here is where the magic happens
+        moviesListView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            //useless here, skip!
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+            }
+
+            //dumdumdum
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem,
+                                 int visibleItemCount, int totalItemCount) {
+
+                //what is the bottom iten that is visible
+                int lastInScreen = firstVisibleItem + visibleItemCount;
+                //is the bottom item visible & not loading more already ? Load more !
+                if (currentPage <= PAGE_CAP - 1) {
+                    if ((lastInScreen == totalItemCount) && !(loadingMore)) {
+                        Thread thread = new Thread(null, loadMoreListItems);
+                        thread.start();
+                    }
+                } else {
+                    if (PAGE_CAP > 0) moviesListView.removeFooterView(footerView);
+                }
+
+            }
+        });
+
+        mRequestQueue = Volley.newRequestQueue(this);
+        mImageLoader = new ImageLoader(mRequestQueue, new ImageLoader.ImageCache() {
+            private final LruCache<String, Bitmap> mCache = new LruCache<String, Bitmap>(10);
+            public void putBitmap(String url, Bitmap bitmap) {
+                mCache.put(url, bitmap);
+            }
+            public Bitmap getBitmap(String url) {
+                return mCache.get(url);
+            }
+        });
 
         new RequestTask().execute("http://api.rottentomatoes.com/api/public/v1.0/lists/movies/in_theaters.json?page_limit=15&page=1&country=us&apikey=vxwjzfe4gaczt2qpurr33cyj");
 
     }
+
+    //Runnable to load the items
+    private Runnable loadMoreListItems = new Runnable() {
+        @Override
+        public void run() {
+            if (adapter != null) {
+                //Set flag so we cant load new items 2 at the same time
+                loadingMore = true;
+                //Reset the array that holds the new items
+                tempList = new ArrayList<Movie>();
+                //Simulate a delay, delete this on a production environment!
+                try { Thread.sleep(1000);
+                } catch (InterruptedException e) {}
+
+                if (currentPage <= PAGE_CAP - 1) {
+                    String response = "";
+                    if (currentMode == Mode.IN_THEATRES) response = launchHTTPRequest("http://api.rottentomatoes.com/api/public/v1.0/lists/movies/in_theaters.json?page_limit="+itemsPerPage+"&page="+(++currentPage)+"&country=us&apikey=vxwjzfe4gaczt2qpurr33cyj");
+                    else response = launchHTTPRequest("http://api.rottentomatoes.com/api/public/v1.0/movies.json?q="+currentQuery+"&page_limit="+itemsPerPage+"&page="+(++currentPage)+"&apikey=vxwjzfe4gaczt2qpurr33cyj");
+                    try {
+                        tempList = processJSON(new JSONObject(response).getJSONArray("movies"));
+                    } catch (JSONException e) {
+                        Log.d("Test", "Failed to parse the JSON response!YOYLYOYOYOY");
+                        e.printStackTrace();
+                    }
+                }
+
+                //Done! now continue on the UI thread
+                runOnUiThread(returnRes);
+            }
+        }
+    };
+
+    //Since we cant update our UI from a thread this Runnable takes care of that!
+    private Runnable returnRes = new Runnable() {
+        @Override
+        public void run() {
+            //Loop thru the new items and add them to the adapter
+            if(tempList != null && tempList.size() > 0){
+                for(int i=0;i < tempList.size();i++)
+                    adapter.add(tempList.get(i));
+            }
+            tempList.clear();
+            //Tell to the adapter that changes have been made, this will cause the list to refresh
+            adapter.notifyDataSetChanged();
+            //Done loading more.
+            loadingMore = false;
+        }
+    };
 
     @Override
     public void onResume() {
@@ -111,8 +226,12 @@ public class MainActivity extends Activity
         @Override
         public boolean onQueryTextSubmit(String query) {
             query = query.replace(' ', '+');
+            currentQuery = query;
+            currentPage=0;
             Log.d("FORMATTED QUERY", query);
-            new RequestTask().execute("http://api.rottentomatoes.com/api/public/v1.0/movies.json?q="+query+"&page_limit=10&page=1&apikey=vxwjzfe4gaczt2qpurr33cyj");
+            adapter.clear();
+            currentMode = Mode.SEARCH;
+            new RequestTask().execute("http://api.rottentomatoes.com/api/public/v1.0/movies.json?q="+currentQuery+"&page_limit="+itemsPerPage+"&page="+(++currentPage)+"&apikey=vxwjzfe4gaczt2qpurr33cyj");
             return true;
         }
 
@@ -131,7 +250,7 @@ public class MainActivity extends Activity
 
     private void refreshMoviesList()
     {
-        adapter = new CustomAdapter(this, R.layout.listview_layout, moviesList, dataSource);
+        adapter = new CustomAdapter(this, R.layout.listview_layout, moviesList, dataSource, mImageLoader);
         moviesListView.setAdapter(adapter);
         moviesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,
@@ -170,45 +289,7 @@ public class MainActivity extends Activity
         @Override
         protected String doInBackground(String... uri)
         {
-            HttpClient httpclient = new DefaultHttpClient();
-            HttpResponse response;
-            String responseString = null;
-
-            boolean isGzip = false;
-            try
-            {
-                // make a HTTP request
-                response = httpclient.execute(new HttpGet(uri[0]));
-                StatusLine statusLine = response.getStatusLine();
-
-                if (response.getFirstHeader("Content-Encoding") != null) {
-                    isGzip = true;
-                    Log.d("GZIP", "Stream is gzipped");
-                }
-                if (statusLine.getStatusCode() == HttpStatus.SC_OK)
-                {
-                    // request successful - read the response and close the connection
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    response.getEntity().writeTo(out);
-                    out.close();
-                    if (isGzip) {
-                        responseString = decompress(out.toByteArray());
-                    } else {
-                        responseString = out.toString();
-                    }
-                }
-                else
-                {
-                    // request failed - close the connection
-                    response.getEntity().getContent().close();
-                    throw new IOException(statusLine.getReasonPhrase());
-                }
-            }
-            catch (Exception e)
-            {
-                Log.d("Test", "Couldn't make a successful request!");
-            }
-            return responseString;
+            return launchHTTPRequest(uri[0]);
         }
 
         // if the request above completed successfully, this method will
@@ -226,24 +307,14 @@ public class MainActivity extends Activity
                     // because JSON is the response format Rotten Tomatoes uses
                     JSONObject jsonResponse = new JSONObject(response);
 
+                    int totalPages = Integer.parseInt(jsonResponse.getString("total"));
+
+                    PAGE_CAP = (int) Math.ceil(totalPages / itemsPerPage);
+
                     // fetch the array of movies in the response
                     JSONArray movies = jsonResponse.getJSONArray("movies");
 
-                    // add each movie's title to an array
-                    moviesList = new ArrayList();
-                    Movie movieObject;
-                    for (int i = 0; i < movies.length(); i++)
-                    {
-                        JSONObject movie = movies.getJSONObject(i);
-                        movieObject = new Movie();
-                        movieObject.setMovieId(Integer.parseInt(movie.getString("id")));
-                        movieObject.setMovieTitle(movie.getString("title"));
-                        movieObject.setMovieCritics(Integer.parseInt(movie.getJSONObject("ratings").getString("critics_score")));
-                        movieObject.setMovieAudience(Integer.parseInt(movie.getJSONObject("ratings").getString("audience_score")));
-                        movieObject.setMpaa(movie.getString("mpaa_rating"));
-                        movieObject.setImageUrl(movie.getJSONObject("posters").getString("thumbnail"));
-                        moviesList.add(movieObject);
-                    }
+                    moviesList.addAll(processJSON(movies));
 
                     // update the UI
                     refreshMoviesList();
@@ -254,21 +325,82 @@ public class MainActivity extends Activity
                 }
             }
         }
-
-        public String decompress(byte[] compressed) throws IOException {
-            final int BUFFER_SIZE = 32;
-            ByteArrayInputStream is = new ByteArrayInputStream(compressed);
-            GZIPInputStream gis = new GZIPInputStream(is, BUFFER_SIZE);
-            StringBuilder string = new StringBuilder();
-            byte[] data = new byte[BUFFER_SIZE];
-            int bytesRead;
-            while ((bytesRead = gis.read(data)) != -1) {
-                string.append(new String(data, 0, bytesRead));
-            }
-            gis.close();
-            is.close();
-            return string.toString();
-        }
     }
+
+    public String launchHTTPRequest (String uri) {
+        HttpClient httpclient = new DefaultHttpClient();
+        HttpResponse response;
+        String responseString = null;
+
+        boolean isGzip = false;
+        try
+        {
+            // make a HTTP request
+            response = httpclient.execute(new HttpGet(uri));
+            StatusLine statusLine = response.getStatusLine();
+
+            if (response.getFirstHeader("Content-Encoding") != null) {
+                isGzip = true;
+                Log.d("GZIP", "Stream is gzipped");
+            }
+            if (statusLine.getStatusCode() == HttpStatus.SC_OK)
+            {
+                // request successful - read the response and close the connection
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                response.getEntity().writeTo(out);
+                out.close();
+                if (isGzip) {
+                    responseString = decompress(out.toByteArray());
+                } else {
+                    responseString = out.toString();
+                }
+            }
+            else
+            {
+                // request failed - close the connection
+                response.getEntity().getContent().close();
+                throw new IOException(statusLine.getReasonPhrase());
+            }
+        }
+        catch (Exception e)
+        {
+            Log.d("Test", "Couldn't make a successful request!");
+        }
+        return responseString;
+    }
+
+    public ArrayList<Movie> processJSON (JSONArray movies) throws JSONException{
+        Movie movieObject;
+        ArrayList<Movie> returnList = new ArrayList<Movie>();
+        for (int i = 0; i < movies.length(); i++)
+        {
+            JSONObject movie = movies.getJSONObject(i);
+            movieObject = new Movie();
+            movieObject.setMovieId(Integer.parseInt(movie.getString("id")));
+            movieObject.setMovieTitle(movie.getString("title"));
+            movieObject.setMovieCritics(Integer.parseInt(movie.getJSONObject("ratings").getString("critics_score")));
+            movieObject.setMovieAudience(Integer.parseInt(movie.getJSONObject("ratings").getString("audience_score")));
+            movieObject.setMpaa(movie.getString("mpaa_rating"));
+            movieObject.setImageUrl(movie.getJSONObject("posters").getString("thumbnail"));
+            returnList.add(movieObject);
+        }
+        return returnList;
+    }
+
+    public String decompress(byte[] compressed) throws IOException {
+        final int BUFFER_SIZE = 32;
+        ByteArrayInputStream is = new ByteArrayInputStream(compressed);
+        GZIPInputStream gis = new GZIPInputStream(is, BUFFER_SIZE);
+        StringBuilder string = new StringBuilder();
+        byte[] data = new byte[BUFFER_SIZE];
+        int bytesRead;
+        while ((bytesRead = gis.read(data)) != -1) {
+            string.append(new String(data, 0, bytesRead));
+        }
+        gis.close();
+        is.close();
+        return string.toString();
+    }
+
 }
 
