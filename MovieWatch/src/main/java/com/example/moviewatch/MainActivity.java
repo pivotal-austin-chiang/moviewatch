@@ -13,12 +13,14 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.SearchView;
 import android.widget.Toast;
 import android.widget.AdapterView;
@@ -32,6 +34,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
+
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
@@ -57,7 +60,7 @@ public class MainActivity extends Activity
 
     private EditText searchBox;
     private Button searchButton;
-    private EnhancedListView moviesListView;
+    private ListView moviesListView;
     private ArrayList<Movie> moviesList = new ArrayList();
     private ArrayList<Movie> tempList;
     private MovieDataSource dataSource;
@@ -73,6 +76,7 @@ public class MainActivity extends Activity
     private Mode currentMode = Mode.IN_THEATRES;
     private RequestQueue mRequestQueue;
     private ImageLoader mImageLoader;
+    private Context context = this;
 
     enum Mode {
         SEARCH,
@@ -93,7 +97,7 @@ public class MainActivity extends Activity
             e.printStackTrace();
         }
 
-        moviesListView = (EnhancedListView) findViewById(R.id.list_movies);
+        moviesListView = (ListView)findViewById(R.id.list_movies);
         //add the footer before adding the adapter, else the footer will not load!
         footerView = ((LayoutInflater)this.getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.footer_main, null, false);
         moviesListView.addFooterView(footerView);
@@ -119,11 +123,11 @@ public class MainActivity extends Activity
                     if ((lastInScreen == totalItemCount) && !(loadingMore)) {
                         Thread thread = new Thread(null, loadMoreListItems);
                         thread.start();
+                        footerView.setVisibility(View.VISIBLE);
                     }
                 } else {
-                    if (PAGE_CAP > 0) moviesListView.removeFooterView(footerView);
+                    footerView.setVisibility(View.GONE);
                 }
-
             }
         });
 
@@ -140,6 +144,24 @@ public class MainActivity extends Activity
 
         new RequestTask().execute("http://api.rottentomatoes.com/api/public/v1.0/lists/movies/in_theaters.json?page_limit=15&page=1&country=us&apikey=vxwjzfe4gaczt2qpurr33cyj");
 
+    }
+
+    private void setFooterViewInvisible() {
+        ViewGroup.LayoutParams params = footerView.getLayoutParams();
+        if (params != null) {
+            Toast.makeText(getApplicationContext(), "toast",Toast.LENGTH_SHORT).show();
+            Log.d("PARAMS", params.height +" "+ params.width);
+            params.height = 0;
+            footerView.setLayoutParams(params);
+        }
+    }
+
+    private void setFooterViewVisible() {
+        ViewGroup.LayoutParams params = footerView.getLayoutParams();
+        if (params != null) {
+            params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            footerView.setLayoutParams(params);
+        }
     }
 
     //Runnable to load the items
@@ -231,6 +253,7 @@ public class MainActivity extends Activity
             Log.d("FORMATTED QUERY", query);
             adapter.clear();
             currentMode = Mode.SEARCH;
+            setFooterViewVisible();
             new RequestTask().execute("http://api.rottentomatoes.com/api/public/v1.0/movies.json?q="+currentQuery+"&page_limit="+itemsPerPage+"&page="+(++currentPage)+"&apikey=vxwjzfe4gaczt2qpurr33cyj");
             return true;
         }
@@ -268,18 +291,6 @@ public class MainActivity extends Activity
 //                Toast.makeText(getApplicationContext(), synopsis,Toast.LENGTH_SHORT).show();
             }
         });
-        moviesListView.setDismissCallback(new EnhancedListView.OnDismissCallback() {
-            @Override
-            public EnhancedListView.Undoable onDismiss(EnhancedListView listView, final int position) {
-
-                moviesList.remove(position);
-                adapter.notifyDataSetChanged();
-
-                return null;
-            }
-        });
-
-        moviesListView.enableSwipeToDismiss();
 
     }
 
@@ -307,9 +318,9 @@ public class MainActivity extends Activity
                     // because JSON is the response format Rotten Tomatoes uses
                     JSONObject jsonResponse = new JSONObject(response);
 
-                    int totalPages = Integer.parseInt(jsonResponse.getString("total"));
+                    int totalItems = Integer.parseInt(jsonResponse.getString("total"));
 
-                    PAGE_CAP = (int) Math.ceil(totalPages / itemsPerPage);
+                    PAGE_CAP = (totalItems / itemsPerPage) + 1;
 
                     // fetch the array of movies in the response
                     JSONArray movies = jsonResponse.getJSONArray("movies");

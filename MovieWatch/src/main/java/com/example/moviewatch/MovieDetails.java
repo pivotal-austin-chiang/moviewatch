@@ -8,6 +8,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -21,6 +22,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.SimpleCursorTreeAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -61,6 +63,18 @@ public class MovieDetails extends ActionBarActivity {
     private TextView sypnosis;
     private TextView movie_cast;
     private ImageView poster;
+    private ImageView c_icon;
+    private ImageView a_icon;
+    private String rotten= "@drawable/rotten";
+    private String fresh= "@drawable/fresh";
+    private String certified= "@drawable/certified";
+    private String dislike= "@drawable/dislike";
+    private String like= "@drawable/like";
+    private int rotten_id;
+    private int fresh_id;
+    private int certified_id;
+    private int dislike_id;
+    private int like_id;
 
     String castList = "";
 
@@ -78,9 +92,17 @@ public class MovieDetails extends ActionBarActivity {
         sypnosis = (TextView) findViewById(R.id.sypnosis);
         movie_cast = (TextView) findViewById(R.id.cast);
         poster = (ImageView) findViewById(R.id.thumbnail);
+        c_icon = (ImageView) findViewById(R.id.c_icon);
+        a_icon = (ImageView) findViewById(R.id.a_icon);
 
         Bundle extras = getIntent().getExtras();
         String id = extras.getString("MOVIE_ID");
+
+        rotten_id = this.getResources().getIdentifier(rotten, null, this.getPackageName());
+        fresh_id = this.getResources().getIdentifier(fresh, null, this.getPackageName());
+        certified_id = this.getResources().getIdentifier(certified, null, this.getPackageName());
+        like_id = this.getResources().getIdentifier(like, null, this.getPackageName());
+        dislike_id = this.getResources().getIdentifier(dislike, null, this.getPackageName());
 
         requestTask.execute("http://api.rottentomatoes.com/api/public/v1.0/movies/" + id + ".json?apikey=vxwjzfe4gaczt2qpurr33cyj");
 
@@ -150,12 +172,28 @@ public class MovieDetails extends ActionBarActivity {
                     // because JSON is the response format Rotten Tomatoes uses
                     movieObject = new JSONObject(response);
                     title.setText(requestTask.movieObject.getString("title"));
-                    mpaa.setText("Rated: " + requestTask.movieObject.getString("mpaa_rating"));
-                    runtime.setText("Duration: " +  requestTask.movieObject.getString("runtime"));
-                    c_rating.setText("Critics: " + requestTask.movieObject.getJSONObject("ratings").getString("critics_score") + "%");
-                    a_rating.setText("Audience: " + requestTask.movieObject.getJSONObject("ratings").getString("audience_score")+"%");
-                    consensus.setText("Critic's Consensus: " + requestTask.movieObject.getString("critics_consensus"));
-                    sypnosis.setText("Synopsis: " + requestTask.movieObject.getString("synopsis"));
+                    mpaa.setText(Html.fromHtml("<b>Rated: </b>"+ requestTask.movieObject.getString("mpaa_rating")));
+                    runtime.setText(Html.fromHtml("<b>Duration: </b>"+ requestTask.movieObject.getString("runtime")));
+                    c_rating.setText(Html.fromHtml("<b>Critics: </b>"+ requestTask.movieObject.getJSONObject("ratings").getString("critics_score")+"%"));
+                    a_rating.setText(Html.fromHtml("<b>Audience: </b>"+ requestTask.movieObject.getJSONObject("ratings").getString("audience_score")+"%"));
+                    consensus.setText(Html.fromHtml("<b>Description: </b>"+ requestTask.movieObject.getString("critics_consensus")));
+                    sypnosis.setText(Html.fromHtml("<b>Synopsis: </b>"+ requestTask.movieObject.getString("synopsis")));
+                    String critics_rating=requestTask.movieObject.getJSONObject("ratings").getString("critics_rating");
+                    String audience_rating=requestTask.movieObject.getJSONObject("ratings").getString("audience_rating");
+                    if(critics_rating.equals("Rotten")){
+                        c_icon.setImageResource(rotten_id);
+                    } else if(critics_rating.equals("Fresh")){
+                        c_icon.setImageResource(fresh_id);
+                    } else{
+                        c_icon.setImageResource(certified_id);
+                    }
+
+                    if(audience_rating.equals("Spilled")){
+                        a_icon.setImageResource(dislike_id);
+                    } else {
+                        a_icon.setImageResource(like_id);
+                    }
+
                     JSONArray cast = requestTask.movieObject.getJSONArray("abridged_cast");
                     if(cast != null){
                         castList += cast.getJSONObject(0).getString("name");
@@ -164,9 +202,11 @@ public class MovieDetails extends ActionBarActivity {
                             castList+=cast.getJSONObject(i).getString("name");
                         }
                     }
-                    movie_cast.setText("Cast: " + castList);
 
-                    new LoadImageTask().execute(movieObject.getJSONObject("posters").getString("detailed"), poster);
+                    movie_cast.setText(Html.fromHtml("<b>Cast: </b> " + castList));
+                    new LoadImageTask().execute(movieObject.getJSONObject("posters").getString("detailed"));
+
+
 
                 }
                 catch (JSONException e)
@@ -212,16 +252,27 @@ public class MovieDetails extends ActionBarActivity {
         private Bitmap thumbnailBitmap;
 
         @Override
-        protected String doInBackground(Object... uri)
+        protected String doInBackground(Object... objects)
         {
-            thumbnailTemp = (ImageView) uri[1];
-            thumbnailBitmap = loadBitmap((String) uri[0]);
+            thumbnailTemp = poster;
+            thumbnailBitmap = loadBitmap((String) objects[0]);
             return "";
         }
         @Override
         protected void onPostExecute(String response) {
             if (thumbnailBitmap != null) {
                 thumbnailTemp.setImageBitmap(thumbnailBitmap);
+                title.setVisibility(View.VISIBLE);
+                mpaa.setVisibility(View.VISIBLE);
+                runtime.setVisibility(View.VISIBLE);
+                c_rating.setVisibility(View.VISIBLE);
+                a_rating.setVisibility(View.VISIBLE);
+                consensus.setVisibility(View.VISIBLE);
+                sypnosis.setVisibility(View.VISIBLE);
+                c_icon.setVisibility(View.VISIBLE);
+                a_icon.setVisibility(View.VISIBLE);
+                movie_cast.setVisibility(View.VISIBLE);
+                poster.setVisibility(View.VISIBLE);
             }
         }
 

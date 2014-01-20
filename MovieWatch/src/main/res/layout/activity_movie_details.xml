@@ -11,7 +11,29 @@
             android:layout_alignParentLeft="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginRight="8dp">
+            android:layout_marginRight="8dp"
+            android:layout_marginBottom="8dp"
+            android:visibility="invisible">
+        </ImageView>
+        <ImageView
+            android:id="@+id/c_icon"
+            android:layout_toRightOf="@+id/c_rating"
+            android:layout_below="@+id/runtime"
+            android:layout_width="40px"
+            android:layout_height="40px"
+            android:layout_marginRight="8dp"
+            android:src="@drawable/fresh"
+            android:visibility="invisible">
+        </ImageView>
+        <ImageView
+            android:id="@+id/a_icon"
+            android:layout_toRightOf="@+id/a_rating"
+            android:layout_below="@+id/c_icon"
+            android:layout_width="40px"
+            android:layout_height="40px"
+            android:layout_marginRight="8dp"
+            android:src="@drawable/like"
+            android:visibility="invisible">
         </ImageView>
         <TextView
             android:layout_width="wrap_content"
@@ -22,7 +44,9 @@
             android:textSize="22sp"
             android:textColor="#000000"
             android:textStyle="bold"
-            android:id="@+id/title" />
+            android:layout_marginBottom="4dp"
+            android:id="@+id/title"
+            android:visibility="invisible"/>
 
         <TextView
             android:layout_width="wrap_content"
@@ -32,7 +56,8 @@
             android:layout_below="@+id/title"
             android:editable = "true"
             android:textSize="15sp"
-            android:id="@+id/mpaa" />
+            android:id="@+id/mpaa"
+            android:visibility="invisible"/>
 
         <TextView
             android:layout_width="wrap_content"
@@ -42,7 +67,8 @@
             android:layout_below="@+id/mpaa"
             android:editable = "true"
             android:textSize="15sp"
-            android:id="@+id/runtime" />
+            android:id="@+id/runtime"
+            android:visibility="invisible"/>
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -51,7 +77,8 @@
             android:layout_below="@+id/runtime"
             android:editable = "true"
             android:textSize="15sp"
-            android:id="@+id/c_rating" />
+            android:id="@+id/c_rating"
+            android:visibility="invisible"/>
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -60,7 +87,8 @@
             android:layout_below="@+id/c_rating"
             android:editable = "true"
             android:textSize="15sp"
-            android:id="@+id/a_rating" />
+            android:id="@+id/a_rating"
+            android:visibility="invisible"/>
 
         <TextView
             android:layout_width="wrap_content"
@@ -69,7 +97,8 @@
             android:layout_below="@+id/thumbnail"
             android:editable = "true"
             android:textSize="15sp"
-            android:id="@+id/consensus" />
+            android:id="@+id/consensus"
+            android:visibility="invisible"/>
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -78,7 +107,8 @@
             android:layout_below="@+id/consensus"
             android:editable = "true"
             android:textSize="15sp"
-            android:id="@+id/sypnosis" />
+            android:id="@+id/sypnosis"
+            android:visibility="invisible"/>
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -87,7 +117,8 @@
             android:layout_below="@+id/sypnosis"
             android:editable = "true"
             android:textSize="15sp"
-            android:id="@+id/cast" />
+            android:id="@+id/cast"
+            android:visibility="invisible"/>
 
     </RelativeLayout>
 </ScrollView>
